@@ -4,7 +4,7 @@ const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
 const { getStudents, createNewStudent, updateStudent, deleteStudent, login } = require('./src/controllers/index')
 const { authRouter } = require('./src/router/users')
-
+const { isAuthenticate } = require("./src/controllers/user");
 const app = server() // server is an object of express class
 app.use(cors())
 app.use(bodyParser.json())
@@ -20,10 +20,10 @@ mongoose.connection.on('error', () => {
 
 app.use("/auth", authRouter);
 
-app.get('/students', getStudents)
-app.post('/create-new-student', createNewStudent)
-app.put('/update-student', updateStudent)
-app.delete('/delete-student', deleteStudent)
+app.get('/students', isAuthenticate, getStudents)
+app.post('/create-new-student', isAuthenticate, createNewStudent)
+app.put('/update-student', isAuthenticate, updateStudent)
+app.delete('/delete-student', isAuthenticate, deleteStudent)
 app.post('/login', login)
 
 const port = 4000
