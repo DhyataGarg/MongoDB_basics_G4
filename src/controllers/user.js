@@ -1,6 +1,5 @@
-const { response } = require("express");
 const { Users } = require("../models/user");
-// const { Jwt } = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 
 const signup = async (req, res) => {
     const { name, username, password } = req.body;
@@ -28,27 +27,50 @@ const signup = async (req, res) => {
     });
 }
 
-const login = (req, res) => {
-    const { username, password } = req.body;
-    var user = new User(username, password);
-    if (!user) {
-        return res.json({
+const login = async (request, response) => {
+    const { username, password } = request.body;
+    if (!username || !password) {
+        return response.json({
             status: "Error",
-            msg: "Username not found!"
+            msg: "Username and password required",
+        });
+    }
+
+    var user = await Users.findOne({ username: username });
+    if (!user) {
+        return response.json({
+            status: "Error",
+            msg: "Username not found",
         });
     }
 
     if (!user.authenticate(password)) {
-        return response.json({ status: "Error", msg: "You entered wrong password!" });
-
+        return response.json({
+            status: "Error",
+            msg: "You entered wrong password.",
+        });
     }
 
-    var token = Jwt.sign({ _id: user._id }, user.salt);
-    return res.json({ status: "Done", user, token });
-}
+    var token = jwt.sign({ _id: user._id }, SECREAT_KEY);
 
-const isAuthenticate = (req, res) => {
-    return res.json({ status: "Done" });
-}
+    return response.json({ status: "Done", user, token });
+};
+const isAuthenticate = async (request, response, next) => {
+    var token = request.headers.authorization;
+    if (!token) {
+        return response.json({ status: "Un-Authenticated" });
+    }
+    var user;
+    try {
+        user = jwt.verify(token, SECREAT_KEY);
+    } catch {
+        return response.json({ status: "Un-Authenticated" });
+    }
+
+    user = await Users.findById(user._id);
+
+    next();
+    // return response.json({ status: "Done", user });
+};
 
 module.exports = { signup, login, isAuthenticate };
